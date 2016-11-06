@@ -1,0 +1,77 @@
+// Enable debug prints to serial monitor
+#define MY_DEBUG 
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+// Enable repeater functionality for this node
+#define MY_REPEATER_FEATURE
+
+#include <MySensors.h>
+#include <SPI.h>
+
+#define RELAY_ON 0  // GPIO value to write to turn on attached relay
+#define RELAY_OFF 1 // GPIO value to write to turn off attached relay
+#define PULSE_TIME 800UL  
+
+byte relayPin[] = {3,4};
+unsigned long relayStartTime[2];
+boolean pulseRelay[] = {false, false};
+
+void setup()  
+{       
+    for (byte sensor = 0; sensor < 2; sensor++) // Fetch relay status
+    digitalWrite(relayPin[sensor], RELAY_OFF); // You probably dont want to use EEPROM store here since you are only pulsing
+    for (byte sensor = 0; sensor < 2; sensor++) // Fetch relay status
+    pinMode(relayPin[sensor], OUTPUT); // Then set relay pins in output mode
+    sendHeartbeat();
+    
+    
+}
+void presentation() 
+{ 
+ sendSketchInfo("pulse-relay", "1.0"); // Send the sketch version information to the gateway and Controller
+  for (byte sensor = 0; sensor < 2; sensor++) // Fetch relay status
+// Register all sensors to gw (they will be created as child devices)
+  present(sensor, S_LIGHT); // Register all sensors to gw (they will be created as child devices)
+}
+//
+void loop() 
+{
+  updateRelays();
+}
+
+void receive(const MyMessage &message)
+{
+  if (message.type==V_LIGHT) 
+  {
+     //digitalWrite(message.sensor, message.getBool() ? RELAY_ON : RELAY_OFF); // Change relay state
+     pulseRelay[message.sensor] = true;
+     relayStartTime[message.sensor] = millis();
+     //saveState(message.sensor, message.getBool()); // Store state in eeprom // Again, not needed here, I believe
+     Serial.print("Incoming change for sensor:"); // Write some debug info
+     Serial.print(message.sensor);
+     Serial.print(", New status: ");
+     Serial.println(message.getBool());
+   } 
+}
+//
+void updateRelays()
+{
+  for (byte sensor = 0; sensor < 2; sensor++)
+  {
+    if (pulseRelay[sensor] == true)
+    {
+      if (millis() - relayStartTime[sensor] <= PULSE_TIME)
+      {
+        digitalWrite(relayPin[sensor], LOW);
+      }
+      else
+      {
+        digitalWrite(relayPin[sensor], HIGH);
+        pulseRelay[sensor] = false;
+      }
+    }
+  }
+}
