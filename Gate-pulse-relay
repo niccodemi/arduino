@@ -1,3 +1,4 @@
+//Pulse-relay (2 relays, active low), MySensors 2.0.0
 // Enable debug prints to serial monitor
 #define MY_DEBUG 
 
