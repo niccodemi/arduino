@@ -1,0 +1,106 @@
+/*
+433MHz Multi Motion Sensor
+ * Setup:
+ * - connect a 433MHz receiver on digital pin 2.
+ * - type appropriate RF codes into array, define noMotion and timetrigger1, check void presentation
+*/
+#define MY_DEBUG
+
+#define MY_RADIO_NRF24
+
+#include <RemoteReceiver.h>
+#include <InterruptChain.h>
+#include <SPI.h>
+#include <MySensor.h>
+
+//unsigned long SLEEP_TIME = 120000; // Sleep time between reports (in milliseconds)
+
+#define INTERRUPT 2 // Usually the interrupt = pin -2 (on uno/nano anyway)
+#define noMotion 4                                                           //number of sensors
+const unsigned long RFCODE[] = {354240, 354222, 354216, 354214};              //RF433 codes
+#define CHILD_ID 1   // Id of the sensor child
+
+// Initialize motion message
+MyMessage msg[noMotion];
+
+unsigned long newCodeReceived = 0;
+
+long previousMillis = 0;
+long interval = 120000;                                          //interval at which to send Heartbeat
+
+void setup() {
+  Serial.begin(115200);
+  // Interrupt -1 to indicate you will call the interrupt handler with InterruptChain
+  RemoteReceiver::init(-1, 2, showOldCode);
+  // On interrupt, call the interrupt handlers of remote and sensor receivers
+  InterruptChain::addInterruptCallback(0, RemoteReceiver::interruptHandler);
+  Serial.print("433 Motion Sensor");
+  wait(30);
+    // initialize Motion sensors 
+  for (int i=0; i<noMotion; i++){
+    msg[i].sensor = i;          // initialize messages
+    // Change to V_LIGHT if you use S_LIGHT in presentation below
+    msg[i].type = V_TRIPPED;
+}
+}
+void presentation()  {
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("433 Motion Sensor", "1.0");
+  wait(50);
+  // Register all sensors to gw (they will be created as child devices)
+  //for (int i=0; i<noMotion; i++) {
+  present(1, S_MOTION);
+  wait(200);
+  present(2, S_MOTION);
+  wait(200);
+  present(3, S_MOTION);
+  wait(200);
+  present(4, S_MOTION);
+  wait(200);
+//}
+}
+
+unsigned long timeTrigger1[] = {0, 0, 0, 0};                // same as noMotion
+
+void loop() {
+      for (int i=0; i<noMotion; i++) {
+      // shows the received code sent from an old-style remote switch
+      unsigned long value = RFCODE[i];
+      if(newCodeReceived == value) {
+          if (timeTrigger1[i] == 0) {
+              send(msg[i].set("1"));  // Send tripped value to gw 
+          }
+          newCodeReceived = 0;
+          timeTrigger1[i] = millis();
+      }
+      if (timeTrigger1[i] > 0 && (millis() - timeTrigger1[i]) > 1000) {
+         // Not tripped for over 1 second tell the GW
+         send(msg[i].set("0"));
+         timeTrigger1[i] = 0;
+      }      
+      // Give some time to MySensor  to procces messages
+      wait(10);
+}
+{
+unsigned long currentMillis = millis();
+if(currentMillis - previousMillis > interval) {
+         sendHeartbeat();
+         previousMillis = currentMillis;
+         }
+         }
+}
+
+void showOldCode(unsigned long receivedCode, unsigned int period) {
+  // shows the received code sent from an old-style remote switch
+  // Print the received code.
+  Serial.print("Code: ");
+  Serial.print(receivedCode);
+  Serial.print(", period: ");
+  Serial.print(period);
+  Serial.println("us.");
+
+  // Read digital motion value
+   newCodeReceived = receivedCode;
+    // Sleep until interrupt comes in on motion sensor. Send update every two minute. 
+  //sleep(INTERRUPT,CHANGE, SLEEP_TIME);
+}
