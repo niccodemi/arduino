@@ -1,0 +1,83 @@
+// EV1527 4 inputs + VT pin
+// Connect button or door/window reed switch between 
+// digitial I/O pin (BUTTON_PIN below) and GND.
+
+#define MY_RADIO_NRF24
+
+#include <MySensors.h>
+#include <SPI.h>
+#include <Bounce2.h>
+
+unsigned long SLEEP_TIME = 120000; // Sleep time between reports (in milliseconds)
+#define DIGITAL_INPUT_SENSOR 3   // The digital input you attached VT pin.  (Only 2 and 3 generates interrupt!)
+#define noReeds 4                               //originally for 5
+const int BUTTON_PIN[] = {4, 5, 6, 7};            // Arduino Digital I/O pin for button/reed switch
+boolean reedState[] = {HIGH, HIGH, HIGH, HIGH};    //add one more "HIGH" if using 5 pins
+
+
+Bounce debouncer[noReeds];
+MyMessage msg[noReeds];
+
+void setup(){
+  
+  pinMode(DIGITAL_INPUT_SENSOR, INPUT);      // sets the interrupt as input
+  // initialize Relays with corresponding buttons
+  for (int i = 0; i < noReeds; i++){
+    msg[i].sensor = i;          // initialize messages
+    // Change to V_LIGHT if you use S_LIGHT in presentation below
+    msg[i].type = V_TRIPPED;
+    // Setup the button
+    pinMode(BUTTON_PIN[i],INPUT);
+    // Activate internal pull-up
+    digitalWrite(BUTTON_PIN[i],HIGH);  
+    Serial.print("setup for switch: ");
+    Serial.print(BUTTON_PIN[i]);
+    Serial.println(" complete" );
+    wait(250);
+    debouncer[i] = Bounce();        // initialize debouncer
+    debouncer[i].attach(BUTTON_PIN[i]);
+    debouncer[i].interval(5);
+  }
+  Serial.println("Setup complete" );
+}
+void presentation() {
+  sendSketchInfo("EV1527-multi", "1.0");
+  wait(100);
+  //for (int i = 0; i < noReeds; i++){
+  // Register binary input sensor to gw (they will be created as child devices)
+  // You can use S_DOOR, S_MOTION or S_LIGHT here depending on your usage. 
+  // If S_LIGHT is used, remember to update variable type you send in. See "msg" above.
+  //present(i, S_MOTION);      // present sensor to gateway
+  present(0, S_MOTION);      // present sensor to gateway
+  wait(50);
+  present(1, S_MOTION);      // present sensor to gateway
+  wait(50);
+  present(2, S_MOTION);      // present sensor to gateway
+  wait(50);
+  present(3, S_MOTION);      // present sensor to gateway
+  wait(50);
+  sendHeartbeat();
+  wait(50);
+}
+
+//  Check if digital input has changed and send in new value
+void loop() 
+{
+  for (int i = 0; i < noReeds; i++){
+    debouncer[i].update();
+    // Get the update value
+    int value = debouncer[i].read();
+    if (value != reedState[i]) {
+       // Send in the new value
+       send(msg[i].set(value==HIGH ? 1 : 0), false);
+       wait(250);
+       reedState[i] = value;
+       Serial.print("updating state for swicth: ");
+       Serial.print(BUTTON_PIN[i]);
+       Serial.print(" state: ");
+       Serial.println(reedState[i]);
+    }
+  }
+    // Sleep until interrupt comes in on VT pin. Send update every two minute.
+  sleep(digitalPinToInterrupt(DIGITAL_INPUT_SENSOR), CHANGE, SLEEP_TIME);
+}
