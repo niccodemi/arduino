@@ -1,23 +1,25 @@
-// Multi Binary sketch 
+// Multi Binary sketch, 2.1.0 
 // Connect button or door/window reed switch between 
 // digitial I/O pin (BUTTON_PIN below) and GND.
 
+//Set Static ID
+#define MY_NODE_ID 11
+
 #define MY_RADIO_NRF24
 
-#include <MySensor.h>
+#include <MySensors.h>
 #include <SPI.h>
 #include <Bounce2.h>
 
-#define noReeds 4                               //originally for 5
-const int BUTTON_PIN[] = {3, 4, 5, 6};            // Arduino Digital I/O pin for button/reed switch
-boolean reedState[] = {HIGH, HIGH, HIGH, HIGH};    //add one more "HIGH" if using 5 pins
+#define noReeds 2                               //originally for 5
+const int BUTTON_PIN[] = {4, 5};            // Arduino Digital I/O pin for button/reed switch
+boolean reedState[] = {HIGH, HIGH};         //add three more "HIGH" if using 5 pins
 
 
 Bounce debouncer[noReeds];
 MyMessage msg[noReeds];
 
 void setup(){
-  sendHeartbeat();
   // initialize Relays with corresponding buttons
   for (int i = 0; i < noReeds; i++){
     msg[i].sensor = i;          // initialize messages
@@ -38,14 +40,16 @@ void setup(){
   Serial.println("Setup complete" );
 }
 void presentation() {
-  sendSketchInfo("MultiBinary", "1.0a");
-  wait(250);
+  sendSketchInfo("MultiBinary", "1.0");
+  wait(150);
   for (int i = 0; i < noReeds; i++){
   // Register binary input sensor to gw (they will be created as child devices)
   // You can use S_DOOR, S_MOTION or S_LIGHT here depending on your usage. 
   // If S_LIGHT is used, remember to update variable type you send in. See "msg" above.
   present(i, S_DOOR);      // present sensor to gateway
-  wait(250);
+  wait(150);
+  sendHeartbeat();
+  wait(150);
 }
 }
 //  Check if digital input has changed and send in new value
