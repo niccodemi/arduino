@@ -1,0 +1,185 @@
+/**
+ * The MySensors Arduino library handles the wireless radio link and protocol
+ * between your home built sensors/actuators and HA controller of choice.
+ * The sensors forms a self healing radio network with optional repeaters. Each
+ * repeater and gateway builds a routing tables in EEPROM which keeps track of the
+ * network topology allowing messages to be routed to nodes.
+ *
+ * Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
+ * Copyright (C) 2013-2015 Sensnology AB
+ * Full contributor list: https://github.com/mysensors/Arduino/graphs/contributors
+ *
+ * Documentation: http://www.mysensors.org
+ * Support Forum: http://forum.mysensors.org
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ *******************************
+ *
+ * 
+Decimal: 5678338 (24Bit) Binary: 010101101010010100000010 Tri-State: not applicable PulseLength: 310 microseconds Protocol: 1
+Raw data: 9624,192,1032,808,416,232,988,840,384,256,964,872,360,876,340,288,936,884,336,288,936,888,336,284,936,284,940,884,340,284,936,884,340,284,936,288,936,284,940,284,936,284,940,284,936,884,336,288,936,
+ * 
+ * 
+ * 
+ * Find 433 code with remoteswitch ShowReceivedCode sketch
+ * RemoteTransmitter.h, RemoteSwitch library, up to 6 codes, mysensors 2.1.0
+ */ 
+
+//Set Static ID
+#define MY_NODE_ID 16
+
+// Enable debug prints to serial monitor
+//#define MY_DEBUG 
+
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#include <SPI.h>
+#include <MySensors.h>
+#include <RemoteTransmitter.h>
+
+#define GATE_REMOTE 1
+//#define RED_BUTTON 2
+//#define GREEN_BUTTON 3
+//#define BLUE_BUTTON 4
+//#define NoMotion_BUTTON 5
+//#define MedMotion_BUTTON 6
+//#define FastMotion_BUTTON 7
+
+unsigned long delay_time = 500;
+
+bool state;
+MyMessage msg_power(GATE_REMOTE,V_LIGHT);
+//MyMessage msg_red(RED_BUTTON,V_LIGHT);
+//MyMessage msg_green(GREEN_BUTTON,V_LIGHT);
+//MyMessage msg_blue(BLUE_BUTTON,V_LIGHT);
+//MyMessage msg_NoMotion(NoMotion_BUTTON,V_LIGHT);
+//MyMessage msg_MedMotion(MedMotion_BUTTON,V_LIGHT);
+//MyMessage msg_FastMotion(FastMotion_BUTTON,V_LIGHT);
+
+int period = 500;
+int pin = 3;
+long val = xxxxxx;   //find code with receiver sketch
+
+void before() {
+  
+  }
+
+void setup() {
+  pinMode(pin, OUTPUT);
+  //mySwitch.setRepeatTransmit(1);
+  wait(50);
+  sendHeartbeat();
+  wait(50);
+  }
+
+void presentation()  
+{   
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("Gate AC Control", "1.0");
+  wait(50);
+  present (GATE_REMOTE, S_LIGHT);
+  wait(50);
+  //present (RED_BUTTON, S_LIGHT);
+  //present (GREEN_BUTTON, S_LIGHT);
+  //present (BLUE_BUTTON, S_LIGHT);
+  //present (NoMotion_BUTTON, S_LIGHT);
+  //present (MedMotion_BUTTON, S_LIGHT);
+  //present (FastMotion_BUTTON, S_LIGHT);
+}
+
+void loop() {
+ // if (state) {
+ //   Serial.println("State is true");
+    //send(msg.set(state?false:true), false); // Send new state and request ack back
+   // send(msg.setSensor(RED_CONTROLLER).set(0));
+ //   state = false;
+//  }
+  
+  }
+
+void receive(const MyMessage &message) {
+  // We only expect one type of message from controller. But we better check anyway.
+  if (message.isAck()) {
+     Serial.println("This is an ack from gateway");
+  }
+  
+  if (message.type==V_LIGHT) {
+
+     Serial.print("Incoming change for sensor:");
+     Serial.print(message.sensor);
+     Serial.print(", New status: ");
+     Serial.println(message.getBool());
+     
+     if (message.getBool()){
+      if (message.sensor == GATE_REMOTE) {
+        Serial.println ("Sending GATE data");
+
+        RemoteTransmitter::sendCode(pin, val, period, 3);
+        wait(50);
+
+        Serial.println ("Turn POWER_BUTTON off in Vera");
+        send(msg_power.setSensor(GATE_REMOTE).set(0), true);
+      }
+      //else if (message.sensor == RED_BUTTON) {
+        //Serial.println ("Sending RED data");
+        //mySwitch.send("010101101010010100000010");
+   
+        //Serial.println ("Turn RED_BUTTON off in Vera");
+        //send(msg_red.setSensor(RED_BUTTON).set(0), true);
+
+       //}
+      //else if (message.sensor == GREEN_BUTTON) {
+        //Serial.println ("Sending GREEN data");
+        //mySwitch.send("010101101010010100001000");
+
+        //Serial.println ("Turn GREEN_BUTTON off in Vera");
+        //send(msg_green.setSensor(GREEN_BUTTON).set(0), true);
+      //}
+      //else if (message.sensor == BLUE_BUTTON) {
+        //Serial.println ("Sending BLUE data");
+        //mySwitch.send("010101101010010100001110");
+
+        //Serial.println ("Turn BLUE_BUTTON in Vera");
+        //send(msg_blue.setSensor(BLUE_BUTTON).set(0), true);
+      //}
+      //else if (message.sensor == NoMotion_BUTTON) {
+        //Serial.println ("Sending No Motion data");
+        //mySwitch.send("010101101010010100000100");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100000100");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100000100");
+        //Serial.println ("Turn No Motion in Vera");
+        //send(msg_blue.setSensor(NoMotion_BUTTON).set(0), true);
+      //}
+      //else if (message.sensor == MedMotion_BUTTON) {
+        //Serial.println ("Sending Medium Motion data");
+        //mySwitch.send("010101101010010100000100");//down
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100000100");//down
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100010110");//up
+        //Serial.println ("Turn Medium Motion in Vera");
+        //send(msg_blue.setSensor(MedMotion_BUTTON).set(0), true);
+      //}       
+      //else if (message.sensor == FastMotion_BUTTON) {
+        //Serial.println ("Sending Fast Motion data");
+        //mySwitch.send("010101101010010100010110");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100010110");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100010110");
+        //Serial.println ("Turn Fast Motion in Vera");
+        //send(msg_blue.setSensor(FastMotion_BUTTON).set(0), true);
+      //}      
+        
+    }
+
+    // Store state in eeprom
+   // saveState(message.sensor, message.getBool()); 
+   } 
+}
