@@ -23,7 +23,7 @@ Decimal: 5678338 (24Bit) Binary: 010101101010010100000010 Tri-State: not applica
 Raw data: 9624,192,1032,808,416,232,988,840,384,256,964,872,360,876,340,288,936,884,336,288,936,888,336,284,936,284,940,884,340,284,936,884,340,284,936,288,936,284,940,284,936,284,940,284,936,884,336,288,936,
  * 
  * 
- * 
+ * orginally from https://forum.mysensors.org/topic/4962/laser-christmas-light-control-433mhz/7    (changed RCswitch to remoteswitch library)
  * Find 433 code with remoteswitch ShowReceivedCode sketch
  * RemoteTransmitter.h, RemoteSwitch library, up to 6 codes, mysensors 2.1.0
  */ 
