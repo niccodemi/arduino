@@ -1,0 +1,65 @@
+/**
+ * DESCRIPTION
+ * Motion Sensor example using HC-SR501
+ * http://www.mysensors.org/build/motion
+ *
+ */
+
+// Enable debug prints
+// #define MY_DEBUG
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#include <MySensors.h>
+
+//unsigned long SLEEP_TIME = 120000; // Sleep time between reports (in milliseconds)
+//#define DIGITAL_INPUT_SENSOR 3   // The digital input you attached your motion sensor.  (Only 2 and 3 generates interrupt!)
+#define CHILD_ID 1   // Id of the sensor child
+long randNumber;
+long oldkWh = 0;
+
+// Initialize motion message
+MyMessage wattMsg(CHILD_ID,V_WATT);
+MyMessage kwhMsg(CHILD_ID,V_KWH);
+
+void setup()
+{
+    Serial.begin(9600);
+    randomSeed(analogRead(0));
+//pinMode(DIGITAL_INPUT_SENSOR, INPUT);      // sets the motion sensor digital pin as input
+}
+
+void presentation()
+{
+	// Send the sketch version information to the gateway and Controller
+	sendSketchInfo("Power-fake", "1.0");
+
+  wait(30);
+  // Register this device as power sensor
+  present(CHILD_ID, S_POWER);
+  wait(30);
+   sendHeartbeat();
+  wait(30);
+}
+
+void loop()
+{
+	// Read digital motion value
+	//bool tripped = digitalRead(DIGITAL_INPUT_SENSOR) == HIGH;
+// print a random number from 150 to 1200
+  randNumber = random(150, 1200);
+  Serial.println(randNumber);
+  send(wattMsg.set(randNumber));  // Send watt value to gw
+  wait(50);
+  double kWh = randNumber + oldkWh;
+  send(kwhMsg.set(kWh, 4));  // Send kwh value to gw 
+  Serial.println(kWh);
+  oldkWh = kWh;
+
+
+	// Sleep until interrupt comes in on motion sensor. Send update every two minute.
+//	sleep(digitalPinToInterrupt(DIGITAL_INPUT_SENSOR), CHANGE, SLEEP_TIME);
+wait(20000);
+}
