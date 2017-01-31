@@ -1,0 +1,62 @@
+/**
+ * DESCRIPTION
+ * Multi - Motion Sensor example using HC-SR501
+ * http://www.mysensors.org/build/motion
+ *
+ */
+
+// Enable debug prints
+// #define MY_DEBUG
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#include <MySensors.h>
+
+unsigned long SLEEP_TIME = 12000; // Sleep time between reports (in milliseconds)
+#define DIGITAL_INPUT_SENSOR 2   // The digital input you attached your motion sensor.  (Only 2 and 3 generates interrupt!)
+#define DIGITAL_INPUT_SENSOR2 3   // The digital input you attached your motion sensor.  (Only 2 and 3 generates interrupt!)
+#define CHILD_ID 1   // Id of the sensor child
+//#define CHILD_ID2 2   // Id of the sensor child
+
+// Initialize motion message
+MyMessage msg(CHILD_ID, V_TRIPPED);
+//MyMessage msg2(CHILD_ID2, V_TRIPPED);
+
+void setup()
+{
+  pinMode(DIGITAL_INPUT_SENSOR, INPUT);      // sets the motion sensor digital pin as input
+  pinMode(DIGITAL_INPUT_SENSOR2, INPUT);      // sets the motion sensor digital pin as input
+}
+
+void presentation()
+{
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("Multi Motion", "1.0");
+  wait(50);
+  // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID, S_MOTION);
+  wait(50);
+  //present(CHILD_ID2, S_MOTION);
+  //wait(50);
+}
+
+void loop()
+{
+  // Read digital motion value
+  bool tripped = digitalRead(DIGITAL_INPUT_SENSOR) == HIGH || digitalRead(DIGITAL_INPUT_SENSOR2) == HIGH;
+  //bool tripped = digitalRead(DIGITAL_INPUT_SENSOR) == HIGH;
+  
+  Serial.println(tripped);
+  send(msg.set(tripped?"1":"0"));  // Send tripped value to gw
+
+  // Read digital motion2 value
+  //bool tripped2 = digitalRead(DIGITAL_INPUT_SENSOR2) == HIGH;
+
+  //Serial.println(tripped2);
+  //send(msg2.set(tripped2?"1":"0"));  // Send tripped value to gw
+
+  // Sleep until interrupt comes in on motion sensor. Send update every two minute.
+  sleep(digitalPinToInterrupt(DIGITAL_INPUT_SENSOR), CHANGE, digitalPinToInterrupt(DIGITAL_INPUT_SENSOR2), CHANGE, SLEEP_TIME);
+}
