@@ -25,7 +25,7 @@ UV + lux light level BH1750, MySensors 2.1.0
  * Index table taken from: http://www.elecrow.com/sensors-c-111/environment-c-111_112/uv-sensor-moduleuvm30a-p-716.html
  * Because this table is pretty lineair, we can calculate a UVI with one decimal
  *
- * Connect sensor:
+ * Connect sensor:   MOUNT IT horizontally
  *
  *   +   >>> 5V
  *   -   >>> GND
