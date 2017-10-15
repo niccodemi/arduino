@@ -39,6 +39,9 @@ UV + lux light level BH1750, MySensors 2.1.0
 #define MY_RADIO_NRF24
 //#define MY_RADIO_RFM69
 
+//Set Static node id
+//#define MY_NODE_ID 250
+
 #include <SPI.h>
 #include <MySensors.h>  
 #include <BH1750.h>
