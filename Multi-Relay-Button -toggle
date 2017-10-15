@@ -4,6 +4,9 @@
 
 #define MY_REPEATER_FEATURE
 
+//Set Static node id
+//#define MY_NODE_ID 250
+
 #include <MySensors.h>
 #include <SPI.h>
 #include <Bounce2.h>
