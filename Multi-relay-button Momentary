@@ -1,5 +1,7 @@
 #define MY_RADIO_NRF24
 
+#define MY_RF24_PA_LEVEL RF24_PA_LOW   //(if not LOW, then issues with ACK in openhab, myscontroller)
+
 #define MY_REPEATER_FEATURE
 
 //Set Static node id
