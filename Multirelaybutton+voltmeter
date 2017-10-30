@@ -1,4 +1,6 @@
 //RelayMomentartButton+Voltmeter, Mysensors 2.0
+//openhab-thing    multimeter      volt01  [ nodeId=2, childId=1 ] 
+//openhab-item     Number volt01  "voltage" { channel="mysensors:multimeter:gateway:volt01:volt" }
 
 //#define MY_DEBUG                             // Enable debug prints to serial monitor
 
