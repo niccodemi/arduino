@@ -1,66 +1,58 @@
 /**
-UV + lux light level BH1750, MySensors 2.1.0
- *******************************
- *
- * REVISION HISTORY
- * Version 1.0 - idefix
- * 
+ * Lux (BH1750) and UV sensor, mysensors 2.1.0
  * DESCRIPTION
- * Arduino BH1750FVI Light sensor
- * communicate using I2C Protocol
- * this library enable 2 slave device addresses
- * Main address  0x23
- * secondary address 0x5C
- * connect the sensor as follows :
+ * Arduino UVM-30A
+ * Index table taken from: http://www.elecrow.com/sensors-c-111/environment-c-111_112/uv-sensor-moduleuvm30a-p-716.html
+ * Because this table is pretty lineair, we can calculate a UVI with one decimal
+ *
+ * Connect sensor UV:
+ *
+ *   +   >>> 5V
+ *   -   >>> GND
+ *   out >>> A3
+ *
+ *  Connect lux sensor BH1750
  *
  *   VCC  >>> 5V
  *   Gnd  >>> Gnd
  *   ADDR >>> NC or GND  
  *   SCL  >>> A5
  *   SDA  >>> A4
- * http://www.mysensors.org/build/light
- * 
- *  * DESCRIPTION
- * Arduino UVM-30A
- * Index table taken from: http://www.elecrow.com/sensors-c-111/environment-c-111_112/uv-sensor-moduleuvm30a-p-716.html
- * Because this table is pretty lineair, we can calculate a UVI with one decimal
- *
- * Connect sensor:   MOUNT IT horizontally
- *
- *   +   >>> 5V
- *   -   >>> GND
- *   out >>> A0
  */
 
+//Set Static ID
+#define MY_NODE_ID 6
+
 // Enable debug prints to serial monitor
-//#define MY_DEBUG 
+//#define MY_DEBUG
 
 // Enable and select radio type attached
 #define MY_RADIO_NRF24
 //#define MY_RADIO_RFM69
 
-//Set Static node id
-//#define MY_NODE_ID 250
+#define MY_RF24_PA_LEVEL RF24_PA_LOW   //(if not LOW, then issues with ACK in openhab, myscontroller)
 
 #include <SPI.h>
 #include <MySensors.h>  
 #include <BH1750.h>
 #include <Wire.h>
 
-#define UV_SENSOR_ANALOG_PIN 0
-#define CHILD_ID_UV 0
+#define UV_SENSOR_ANALOG_PIN 3
 
+#define CHILD_ID_UV 0
 #define CHILD_ID_LIGHT 1
-unsigned long SLEEP_TIME = 30000; // Sleep time between reads (in milliseconds)
+
+unsigned long SLEEP_TIME = 120000; // Sleep time between reads (in milliseconds)
 
 BH1750 lightSensor;
 
+MyMessage uvMsg(CHILD_ID_UV, V_UV);
 // V_LIGHT_LEVEL should only be used for uncalibrated light level 0-100%.
 // If your controller supports the new V_LEVEL variable, use this instead for
 // transmitting LUX light level.
 //MyMessage msg(CHILD_ID_LIGHT, V_LIGHT_LEVEL);
 MyMessage msg(CHILD_ID_LIGHT, V_LEVEL);  
-MyMessage uvMsg(CHILD_ID_UV, V_UV);
+
 uint16_t lastlux;
 
 unsigned long lastSend =0;
@@ -73,28 +65,22 @@ void setup()
   lightSensor.begin();
 }
 
-void presentation()  {
+void presentation()
+{
   // Send the sketch version information to the gateway and Controller
-  sendSketchInfo("UV-Lux Sensor", "1.0");
-
+  sendSketchInfo("UV-Lux", "1.0");
+  wait(80);
   // Register all sensors to gateway (they will be created as child devices)
-  present(CHILD_ID_LIGHT, S_LIGHT_LEVEL);
-  wait(250);
   present(CHILD_ID_UV, S_UV);
+  wait(80);
+  present(CHILD_ID_LIGHT, S_LIGHT_LEVEL);
+  wait(80);
+  sendHeartbeat();
+  wait(80);
 }
 
-void loop()      
-{     
-  sendHeartbeat();
-  wait(350);
-  uint16_t lux = lightSensor.readLightLevel();// Get Lux value
-  Serial.println(lux);
-  if (lux != lastlux) {
-      send(msg.set(lux));
-      wait(50);
-      lastlux = lux;
-  }
-  {
+void loop()
+{
   unsigned long currentTime = millis();
 
   uint16_t uv = analogRead(UV_SENSOR_ANALOG_PIN);// Get UV value
@@ -127,9 +113,13 @@ void loop()
   if ((uvIndex != lastUV)||(currentTime-lastSend >= 5UL*60UL*1000UL)) {
     lastSend=currentTime;
     send(uvMsg.set(uvIndex,2));
-    wait(50);
     lastUV = uvIndex;
   }
+  uint16_t lux = lightSensor.readLightLevel();// Get Lux value
+  Serial.println(lux);
+  if (lux != lastlux) {
+      send(msg.set(lux));
+      lastlux = lux;
   }
   sleep(SLEEP_TIME);
 }
