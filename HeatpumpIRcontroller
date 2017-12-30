@@ -19,11 +19,11 @@
  *   {{itemValue('ir_sender')}} <span class="caret"></span>
  * </button>
  * <ul class="dropdown-menu" uib-dropdown-menu role="menu" aria-labelledby="single-button">
- *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00913216')">Aircon 16</a></li>
- *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00913218')">Aircon 18</a></li>
+ *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00B13216')">Aircon 16</a></li>
+ *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00B13218')">Aircon 18</a></li>
  *   <li class="divider"></li>
- *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00913219')">Aircon 19</a></li>
- *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00903220')">Aircon OFF</a></li>
+ *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00B1321B')">Aircon 19</a></li>
+ *   <li role="menuitem"><a ng-click="sendCmd('ir_sender', '00B03220')">Aircon OFF</a></li>
  * </ul>
 * </div>
  */
