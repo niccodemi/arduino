@@ -1,0 +1,167 @@
+/**
+*Mysensors 2.1.0, IR remote transmitter, 2 buttons
+*obtain raw codes with sketch from
+*https://www.analysir.com/blog/2014/03/19/air-conditioners-problems-recording-long-infrared-remote-control-signals-arduino/
+*
+ */ 
+
+//Set Static ID
+//#define MY_NODE_ID 16
+
+// Enable debug prints to serial monitor
+//#define MY_DEBUG 
+
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#include <IRremote.h>
+#include <MySensors.h>
+
+#define AC_REMOTE_FAN2 1
+#define AC_REMOTE_FAN1 2
+//#define GREEN_BUTTON 3
+//#define BLUE_BUTTON 4
+//#define NoMotion_BUTTON 5
+//#define MedMotion_BUTTON 6
+//#define FastMotion_BUTTON 7
+
+//unsigned long delay_time = 500;
+
+bool state;
+MyMessage msg_power(AC_REMOTE_FAN2,V_LIGHT);
+MyMessage msg_red(AC_REMOTE_FAN1,V_LIGHT);
+//MyMessage msg_green(GREEN_BUTTON,V_LIGHT);
+//MyMessage msg_blue(BLUE_BUTTON,V_LIGHT);
+//MyMessage msg_NoMotion(NoMotion_BUTTON,V_LIGHT);
+//MyMessage msg_MedMotion(MedMotion_BUTTON,V_LIGHT);
+//MyMessage msg_FastMotion(FastMotion_BUTTON,V_LIGHT);
+
+int khz = 38; // 38kHz carrier frequency for the NEC protocol
+int irSignal[] = {2944, 9044, 488, 580, 428, 1552, 452, 580, 428, 580, 428, 580, 428, 580, 428, 580, 424, 580, 428, 580, 428, 1552, 456, 580, 424, 584, 424, 1552, 456, 580, 428, 580, 428, 1552, 452, 1552, 456, 1552, 456, 1552, 452, 1552, 456, 580, 428, 580, 456, 548, 456, 552, 456, 552, 456, 552, 456, 552, 456, 552, 456, 552, 452, 552, 456, 552, 456, 552, 456, 552, 456, 552, 456, 548, 460, 548, 456, 552, 456, 552, 456, 552, 456, 552, 456, 552, 456, 548, 456, 552, 456, 552, 456, 552, 456, 552, 456, 552, 456, 548, 456, 552, 456, 552, 456, 552, 456, 552, 456, 1520, 484, 1524, 484, 1524, 484, 1520, 484, 2532, 2972, 9052, 484, 1520, 484, 552, 456, 552, 456, 552, 456, 552, 452, 528, 480, 528, 480, 552, 456, 552, 456, 1524, 484, 524, 480, 528, 480, 1524, 484, 528, 480, 1520, 484, 1524, 484, 528, 480, 1492, 512, 1524, 484, 1524, 484, 1524, 480, 1524, 484, 1524, 484, 1520, 484, 1524, 484, 528, 480, 524, 480, 528, 480, 1524, 484, 1524, 484, 1520, 484, 528, 480, 528, 480, 528, 480, 524, 484, 524, 484, 524, 480, 528, 480, 528, 480, 1524, 484, 1520, 484, 528, 480, 528, 480, 1524, 484, 1520, 484, 528, 480, 528, 480, 528, 480, 524, 480, 532, 476, 528, 480, 528, 480, 1524, 484, 1524, 480, 1524, 484, 1524, 484}; //AnalysIR Batch Export (IRremote) - RAW
+
+int irSignal1[] = {3032, 9028, 504, 504, 576, 1392, 544, 504, 504, 504, 500, 504, 580, 428, 576, 432, 572, 436, 500, 472, 536, 1468, 616, 428, 576, 396, 540, 1464, 540, 508, 500, 504, 576, 1392, 616, 1392, 612, 1400, 536, 1464, 616, 1392, 616, 428, 576, 432, 580, 428, 576, 432, 568, 440, 500, 504, 572, 400, 620, 388, 612, 396, 608, 436, 576, 432, 572, 436, 576, 396, 608, 432, 504, 504, 504, 504, 576, 396, 536, 508, 576, 396, 608, 432, 504, 504, 576, 432, 576, 432, 576, 432, 572, 432, 580, 428, 576, 432, 576, 396, 612, 396, 612, 432, 572, 436, 572, 432, 576, 1396, 616, 1388, 616, 1392, 612, 1392, 616, 1896, 3104, 8920, 616, 1392, 616, 428, 576, 432, 576, 396, 612, 392, 612, 396, 612, 396, 616, 428, 572, 436, 576, 1392, 616, 396, 608, 432, 576, 1392, 616, 432, 576, 1392, 612, 1392, 616, 432, 572, 1396, 612, 1392, 612, 1396, 616, 1392, 612, 1392, 612, 1396, 616, 1388, 616, 1392, 616, 396, 612, 432, 576, 392, 612, 1392, 612, 1396, 540, 1468, 616, 392, 612, 432, 576, 396, 536, 472, 604, 404, 608, 432, 580, 428, 504, 504, 576, 1392, 616, 1392, 612, 432, 576, 1392, 612, 436, 576, 1392, 612, 432, 576, 396, 612, 432, 576, 432, 576, 428, 576, 432, 576, 400, 608, 1392, 612, 1396, 540, 1468, 612, 1392, 616};
+//int period = 500;
+int pin = 3;
+//long val = xxxxxx;   //find code with receiver sketch
+IRsend irsend;
+
+void before() {
+  
+  }
+
+void setup() {
+  pinMode(pin, OUTPUT);
+  //mySwitch.setRepeatTransmit(1);
+  wait(50);
+  sendHeartbeat();
+  wait(50);
+  }
+
+void presentation()  
+{   
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("AC Control", "1.0");
+  wait(50);
+  present (AC_REMOTE_FAN2, S_LIGHT);
+  wait(50);
+  present (AC_REMOTE_FAN1, S_LIGHT);
+  //present (GREEN_BUTTON, S_LIGHT);
+  //present (BLUE_BUTTON, S_LIGHT);
+  //present (NoMotion_BUTTON, S_LIGHT);
+  //present (MedMotion_BUTTON, S_LIGHT);
+  //present (FastMotion_BUTTON, S_LIGHT);
+}
+
+void loop() {
+ // if (state) {
+ //   Serial.println("State is true");
+    //send(msg.set(state?false:true), false); // Send new state and request ack back
+   // send(msg.setSensor(RED_CONTROLLER).set(0));
+ //   state = false;
+//  }
+  
+  }
+
+void receive(const MyMessage &message) {
+  // We only expect one type of message from controller. But we better check anyway.
+  if (message.isAck()) {
+     //Serial.println("This is an ack from gateway");
+  }
+  
+  if (message.type==V_LIGHT) {
+
+     //Serial.print("Incoming change for sensor:");
+     //Serial.print(message.sensor);
+     //Serial.print(", New status: ");
+     //Serial.println(message.getBool());
+     
+     if (message.getBool()){
+      if (message.sensor == AC_REMOTE_FAN2) {
+        //Serial.println ("Sending AC data");
+
+        irsend.sendRaw(irSignal, sizeof(irSignal) / sizeof(irSignal[0]), khz);
+        //RemoteTransmitter::sendCode(pin, val, period, 3);
+        wait(50);
+
+        //Serial.println ("Turn POWER_BUTTON off in Vera");
+        send(msg_power.setSensor(AC_REMOTE_FAN2).set(0), true);
+      }
+      else if (message.sensor == AC_REMOTE_FAN1) {
+        //Serial.println ("Sending RED data");
+        irsend.sendRaw(irSignal1, sizeof(irSignal) / sizeof(irSignal[0]), khz);
+        wait(50);
+        //Serial.println ("Turn RED_BUTTON off in Vera");
+        send(msg_power.setSensor(AC_REMOTE_FAN1).set(0), true);
+
+       }
+      //else if (message.sensor == GREEN_BUTTON) {
+        //Serial.println ("Sending GREEN data");
+        //mySwitch.send("010101101010010100001000");
+
+        //Serial.println ("Turn GREEN_BUTTON off in Vera");
+        //send(msg_green.setSensor(GREEN_BUTTON).set(0), true);
+      //}
+      //else if (message.sensor == BLUE_BUTTON) {
+        //Serial.println ("Sending BLUE data");
+        //mySwitch.send("010101101010010100001110");
+
+        //Serial.println ("Turn BLUE_BUTTON in Vera");
+        //send(msg_blue.setSensor(BLUE_BUTTON).set(0), true);
+      //}
+      //else if (message.sensor == NoMotion_BUTTON) {
+        //Serial.println ("Sending No Motion data");
+        //mySwitch.send("010101101010010100000100");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100000100");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100000100");
+        //Serial.println ("Turn No Motion in Vera");
+        //send(msg_blue.setSensor(NoMotion_BUTTON).set(0), true);
+      //}
+      //else if (message.sensor == MedMotion_BUTTON) {
+        //Serial.println ("Sending Medium Motion data");
+        //mySwitch.send("010101101010010100000100");//down
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100000100");//down
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100010110");//up
+        //Serial.println ("Turn Medium Motion in Vera");
+        //send(msg_blue.setSensor(MedMotion_BUTTON).set(0), true);
+      //}       
+      //else if (message.sensor == FastMotion_BUTTON) {
+        //Serial.println ("Sending Fast Motion data");
+        //mySwitch.send("010101101010010100010110");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100010110");
+        //delay(delay_time);
+        //mySwitch.send("010101101010010100010110");
+        //Serial.println ("Turn Fast Motion in Vera");
+        //send(msg_blue.setSensor(FastMotion_BUTTON).set(0), true);
+      //}      
+        
+    }
+
+    // Store state in eeprom
+   // saveState(message.sensor, message.getBool()); 
+   } 
+}
