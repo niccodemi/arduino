@@ -5,6 +5,7 @@ Raw data: 9624,192,1032,808,416,232,988,840,384,256,964,872,360,876,340,288,936,
  * 
  * orginally from https://forum.mysensors.org/topic/4962/laser-christmas-light-control-433mhz/7   
  * Find 433mHz code with RCswitch advanced sketch (decimal value)
+ * try to send repeat value, or repeat send line
  * RemoteTransmitter.h, RemoteSwitch library, up to 6 codes, mysensors 2.1.0
  */ 
 
