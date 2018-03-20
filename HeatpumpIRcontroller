@@ -11,7 +11,7 @@
  *.items
  *String ir_sender "irSender"          { channel="mysensors:ir:gateway:ir_sender:irSend" }
  *.things
- *	ir          ir_sender        [ nodeId=5, childId=1 ]
+ *	ir          ir_sender        [ nodeId=5, childId=3 ]
  * //use dropdown template WIDGET
  *<h4>Aircon remote</h4>
 *<div class="btn-group" uib-dropdown>
