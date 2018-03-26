@@ -1,4 +1,4 @@
-//RelayMomentartButton+Voltmeter, Mysensors 2.1
+//RelayMomentartButton+Voltmeter+door remote, Mysensors 2.1
 //openhab-thing    multimeter      volt01  [ nodeId=2, childId=1 ] 
 //openhab-item     Number volt01  "voltage" { channel="mysensors:multimeter:gateway:volt01:volt" }
 
@@ -10,22 +10,25 @@
 
 #define MY_REPEATER_FEATURE
 
-//Set Static node id
+//Set Static node id  4
 #define MY_NODE_ID 4
 
 #include <MySensors.h>
 #include <SPI.h>
 #include <Bounce2.h>
+#include <RCSwitch.h>
 #define RELAY_ON 0                      // switch around for realy HIGH/LOW state
 #define RELAY_OFF 1
 #define ID_S_MULTIMETERV 1                   // Multimeter device for voltage measurement
-//
+
+RCSwitch mySwitch = RCSwitch();
 
 #define noRelays 1                     //2-4
 const int relayPin[] = {3};          //  switch around pins to your desire
 const int buttonPin[] = {4};      //  switch around pins to your desire
 int voltagePin = A0;              // analog pin voltage sensor 
 int voltSenseMax = 25500;        // set to the maximum voltage in millivolts of sensor or use for calibration
+#define DOOR_REMOTE 2
 
 class Relay             // relay class, store all relevant data (equivalent to struct)
 {
@@ -35,11 +38,15 @@ public:
   byte oldValue;                    // last Values for key (debounce)
   boolean relayState;               // relay status (also stored in EEPROM)
 };
+bool state;
 
 Relay Relays[noRelays]; 
 Bounce debouncer[noRelays];
 MyMessage msg_S_MULTIMETERv(ID_S_MULTIMETERV,V_VOLTAGE);
 MyMessage msg[noRelays];
+MyMessage msg_power(DOOR_REMOTE,V_LIGHT);
+
+long val = xxxxxxx;   //find code with advanced rc-switch receiver sketch, decimal
 
 void setup(){
     sendHeartbeat();
@@ -63,14 +70,24 @@ void setup(){
     wait(250);
     //pinMode(voltagePin, INPUT);
     }
+  //transmit on pin D5  
+  mySwitch.enableTransmit(5);
+  // Optional set pulse length.
+  mySwitch.setPulseLength(340);
+  //optional, set repeat times (for door remote, otherwise 3)
+  mySwitch.setRepeatTransmit(17);
+  wait(50);
 }
 void presentation()  {
-      sendSketchInfo("Carpark-relay-volt", "1.0");
+      sendSketchInfo("Carpark-relay-volt-door", "1.0");
       wait(150);
       for (int i = 0; i < noRelays; i++)
       present(i, S_LIGHT);                               // present sensor to gateway
       wait(90);
       present(ID_S_MULTIMETERV,V_VOLTAGE);                // Register Sensor to gateway 
+      wait(50);
+      present (DOOR_REMOTE, S_LIGHT);
+      wait(50);
 }
 void loop()
     {
@@ -95,6 +112,18 @@ void receive(const MyMessage &message){
    digitalWrite(Relays[message.sensor].relayPin, Relays[message.sensor].relayState? RELAY_ON:RELAY_OFF); // and set relays accordingly
    saveState( message.sensor, Relays[message.sensor].relayState ); // save sensor state in EEPROM (location == sensor number)
    }
+   else if (message.getBool()){
+      if (message.sensor == DOOR_REMOTE) {
+        Serial.println ("Sending DOOR data");
+
+        //RemoteTransmitter::sendCode(pin, val, period, 3);
+        mySwitch.send(val, 24);
+        wait(50);
+
+        Serial.println ("Turn POWER_BUTTON off in Vera");
+        send(msg_power.setSensor(DOOR_REMOTE).set(0), true);
+      }
+  }
   }
 }
 /*-------------------start of functions--------------------------*/
