@@ -1,0 +1,101 @@
+/**
+ * MySensors 2.3.0 water meter YF-B5 pulse counter 
+ * based on  https://github.com/sekdiy/FlowMeter
+ */
+
+//Set Static ID
+#define MY_NODE_ID 5
+
+//Set Static Parent ID
+#define MY_PARENT_NODE_ID 0
+
+// Enable debug prints
+//#define MY_DEBUG
+
+// Enable and select radio type attached 
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+//#define MY_RS485
+
+#define MY_RF24_PA_LEVEL RF24_PA_LOW   //(if not LOW, then issues with ACK in openhab, myscontroller)
+
+#include <FlowMeter.h>                  // https://github.com/sekdiy/FlowMeter
+#include <MySensors.h>
+
+// connect a flow meter to an interrupt pin (see notes on your Arduino model for pin numbers)
+FlowSensorProperties MySensor = {10.0f, 6.2f, {3, 2.2727, 1.25, 1.094, 1.0101, 1, 1, 1, 1, 1}};
+//FlowSensorProperties MySensor = {30.0f, 6.2f, {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}};
+FlowMeter Meter = FlowMeter(3, MySensor);
+
+// set the measurement update period to 1s (1000 ms)
+const unsigned long period = 1000;
+unsigned long oldTime;
+//unsigned long oldTotalVolume;
+double oldTotalVolume;
+double volume;
+
+#define CHILD_ID 1              // Id of the sensor child
+
+//MyMessage flowMsg(CHILD_ID,V_FLOW);
+MyMessage volumeMsg(CHILD_ID,V_VOLUME);
+//MyMessage lastCounterMsg(CHILD_ID,V_VAR1);
+
+void setup() {
+  // prepare serial communication
+  Serial.begin(115200);
+
+  // enable a call to the 'interrupt service handler' (ISR) on every rising edge at the interrupt pin
+  // do this setup step for every ISR you have defined, depending on how many interrupts you use
+  digitalWrite(INT1, HIGH);  //added, not in original sketch
+  attachInterrupt(INT1, MeterISR, FALLING);
+  oldTime           = 0;
+  oldTotalVolume    = 0;
+  volume            = 0;
+  // sometimes initializing the gear generates some pulses that we should ignore
+  Meter.reset();
+}
+
+void presentation()
+{
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("Water Meter", "1.0");
+  wait(50);
+  // Register this device as Waterflow sensor
+  present(CHILD_ID, S_WATER);
+  wait(50);
+}
+
+void loop() {
+  // wait between output updates
+  wait(period);
+
+  // process the (possibly) counted ticks
+  Meter.tick(period);
+
+  // output some measurement result
+  //Serial.println("Currently " + String(Meter.getCurrentFlowrate()) + " l/min, " + String(Meter.getTotalVolume())+ " l total.");
+  //send(volumeMsg.set(Meter.getCurrentVolume(), 2));               // Send volume in litres value to gw
+  //Serial.println(Meter.getCurrentVolume());
+  //send(volumeMsg.set(Meter.getTotalVolume(), 2)); 
+  //Serial.println(Meter.getTotalVolume());
+
+  if((millis() - oldTime) > 60000)    // Only process counters once per minute
+  {
+   //Serial.println(Meter.getTotalVolume());
+   if (oldTotalVolume != (Meter.getTotalVolume())){
+   volume = ((Meter.getTotalVolume()) - oldTotalVolume);
+   //Serial.println((Meter.getTotalVolume()) - oldTotalVolume);
+   send(volumeMsg.set(volume, 2)); 
+   oldTime = millis();
+   oldTotalVolume = (Meter.getTotalVolume()); 
+  }
+  //
+  // any other code can go here
+  //
+}
+}
+// define an 'interrupt service handler' (ISR) for every interrupt pin you use
+void MeterISR() {
+  // let our flow meter count the pulses
+  Meter.count();
+}
