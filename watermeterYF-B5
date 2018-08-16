@@ -79,7 +79,7 @@ void loop() {
   //send(volumeMsg.set(Meter.getTotalVolume(), 2)); 
   //Serial.println(Meter.getTotalVolume());
 
-  if((millis() - oldTime) > 60000)    // Only process counters once per minute
+  if((millis() - oldTime) > 120000)    // Only process counters once every 2 minutes
   {
    //Serial.println(Meter.getTotalVolume());
    if (oldTotalVolume != (Meter.getTotalVolume())){
@@ -88,6 +88,11 @@ void loop() {
    send(volumeMsg.set(volume, 2)); 
    oldTime = millis();
    oldTotalVolume = (Meter.getTotalVolume()); 
+  }
+  else
+  {
+    volume = 0;
+    send(volumeMsg.set(volume, 2)); 
   }
   //
   // any other code can go here
