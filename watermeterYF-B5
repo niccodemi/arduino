@@ -93,6 +93,7 @@ void loop() {
   {
     volume = 0;
     send(volumeMsg.set(volume, 2)); 
+    oldTime = millis();
   }
   //
   // any other code can go here
