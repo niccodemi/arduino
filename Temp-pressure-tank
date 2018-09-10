@@ -101,6 +101,7 @@ float rawReading = analogRead(A1);   // Range : 0..1024
       if(distance > lastdistance + 6.6 || distance < lastdistance - 6.6){
     Serial.println(distance, 1);  // 1 decimal
        //send(msgdist.setSensor(3).set(distance,1));
+       wait(80);
        send(msgdist.set(distance,1));
        lastdistance = distance;
        }
