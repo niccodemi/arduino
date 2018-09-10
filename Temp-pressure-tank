@@ -84,6 +84,30 @@ void presentation() {
 }
 void loop()     
 {      
+   if((millis() - oldTime) > 179000)    // Only process pressure sensor once every 3 minutes
+  {
+    //float rawVoltage = (rawReading * (4.5 / 1023.0)) + 0.5;
+float rawReading = analogRead(A1);   // Range : 0..1024
+  Serial.print("Raw reading: ");
+  Serial.println(rawReading);
+  
+    // CONVERT TO VOLTAGE
+  //float voltage = 5.0 * rawReading / 1024; // voltage = 0..5V;  we do the math in millivolts!!
+  //Serial.print("Voltage: ");
+  //Serial.println(voltage);
+    //float distance = (voltage - 0.5) / 4.0 * 2100.0;
+    float distance = (rawReading - 474) / 549.0 * 1792.0;   // INTERNAL Ref, 1.2MPa sensors
+    if (lastdistance != distance) {
+      if(distance > lastdistance + 6.6 || distance < lastdistance - 6.6){
+    Serial.println(distance, 1);  // 1 decimal
+       //send(msgdist.setSensor(3).set(distance,1));
+       send(msgdist.set(distance,1));
+       lastdistance = distance;
+       }
+       }
+       oldTime = millis();
+      } 
+  wait(300);
   // Fetch temperatures from Dallas sensors
   sensors.requestTemperatures();
 
@@ -111,30 +135,6 @@ void loop()
       lastTemperature[i]=temperature;
     }
   }
-  wait(300);
-  if((millis() - oldTime) > 179000)    // Only process pressure sensor once every 3 minutes
-  {
-    //float rawVoltage = (rawReading * (4.5 / 1023.0)) + 0.5;
-float rawReading = analogRead(A1);   // Range : 0..1024
-  Serial.print("Raw reading: ");
-  Serial.println(rawReading);
-  
-    // CONVERT TO VOLTAGE
-  //float voltage = 5.0 * rawReading / 1024; // voltage = 0..5V;  we do the math in millivolts!!
-  //Serial.print("Voltage: ");
-  //Serial.println(voltage);
-    //float distance = (voltage - 0.5) / 4.0 * 2100.0;
-    float distance = (rawReading - 474) / 549.0 * 1792.0;   // INTERNAL Ref, 1.2MPa sensors
-    if (lastdistance != distance) {
-      if(distance > lastdistance + 6.6 || distance < lastdistance - 6.6){
-    Serial.println(distance, 1);  // 1 decimal
-       //send(msgdist.setSensor(3).set(distance,1));
-       send(msgdist.set(distance,1));
-       lastdistance = distance;
-       }
-       }
-       oldTime = millis();
-      } 
        //wait(50);
   //sendHeartbeat();
   wait(SLEEP_TIME);
