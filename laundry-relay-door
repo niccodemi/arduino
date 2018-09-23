@@ -1,0 +1,123 @@
+// Multibutton relay, mysensors 2.3.0, laundry 2 relay, 2 mom button, door remote
+
+// Enable debug prints
+// #define MY_DEBUG
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#define MY_RF24_PA_LEVEL RF24_PA_LOW   //(if not LOW, then issues with ACK in openhab, myscontroller)
+
+#define MY_REPEATER_FEATURE
+
+//Set Static ID
+#define MY_NODE_ID 9
+
+#include <MySensors.h>
+#include <SPI.h>
+#include <Bounce2.h>
+#include <RCSwitch.h>
+#define RELAY_ON 1                      // switch around for realy HIGH/LOW state
+#define RELAY_OFF 0
+//
+
+RCSwitch mySwitch = RCSwitch();
+
+#define noRelays 2                     //2-4
+const int relayPin[] = {3,4};          //  switch around pins to your desire
+const int buttonPin[] = {5,6};      //  switch around pins to your desire
+#define DOOR_REMOTE 2
+
+class Relay             // relay class, store all relevant data (equivalent to struct)
+{
+public:                                      
+  int buttonPin;                   // physical pin number of button
+  int relayPin;             // physical pin number of relay
+  byte oldValue;                    // last Values for key (debounce)
+  boolean relayState;               // relay status (also stored in EEPROM)
+};
+
+Relay Relays[noRelays]; 
+Bounce debouncer[noRelays];
+MyMessage msg[noRelays];
+MyMessage msg_power(DOOR_REMOTE,V_LIGHT);
+
+long val = 1234567;   //find code with receiver sketch, 7 digits
+
+void setup(){
+    sendHeartbeat();
+    wait(150);
+    // Initialize Relays with corresponding buttons
+    for (int i = 0; i < noRelays; i++){
+    Relays[i].buttonPin = buttonPin[i];              // assign physical pins
+    Relays[i].relayPin = relayPin[i];
+    msg[i].sensor = i;                                   // initialize messages
+    msg[i].type = V_LIGHT;
+    debouncer[i] = Bounce();                        // initialize debouncer
+    debouncer[i].attach(buttonPin[i]);
+    debouncer[i].interval(5);
+    pinMode(Relays[i].buttonPin, INPUT_PULLUP);
+    //digitalWrite(Relays[i].relayPin, RELAY_OFF);
+    wait(100);
+    pinMode(Relays[i].relayPin, OUTPUT);
+    Relays[i].relayState = loadState(i);                               // retrieve last values from EEPROM
+    digitalWrite(Relays[i].relayPin, Relays[i].relayState? RELAY_ON:RELAY_OFF);   // and set relays accordingly
+    send(msg[i].set(Relays[i].relayState? true : false));                  // make controller aware of last status  
+    wait(100);
+    }
+    //transmit on pin D7  
+  mySwitch.enableTransmit(7);
+  // Optional set pulse length.
+  mySwitch.setPulseLength(340);
+  //optional, set repeat times (for door remote, otherwise 3)
+  mySwitch.setRepeatTransmit(17);
+  wait(50);  
+}
+void presentation()  {
+      sendSketchInfo("Laundry relay", "1.0");
+      wait(100);
+      //for (int i = 0; i < noRelays; i++)
+      present(0, S_LIGHT);  // present sensor to gateway
+      wait(100);
+      present(1, S_LIGHT);  // present sensor to gateway
+      wait(100);
+      present (DOOR_REMOTE, S_LIGHT);
+      wait(50);
+}
+void loop()
+    {
+    for (byte i = 0; i < noRelays; i++){
+    debouncer[i].update();
+    byte value = debouncer[i].read();
+    if (value != Relays[i].oldValue && value==0){
+    Relays[i].relayState = !Relays[i].relayState;
+    digitalWrite(Relays[i].relayPin, Relays[i].relayState?RELAY_ON:RELAY_OFF);
+    send(msg[i].set(Relays[i].relayState? true : false));
+    saveState( i, Relays[i].relayState );}                 // save sensor state in EEPROM (location == sensor number)
+    
+        Relays[i].oldValue = value;      
+    }
+}
+// process incoming message 
+void receive(const MyMessage &message){        
+   if (message.type == V_LIGHT){ 
+   if (message.sensor <noRelays){            // check if message is valid for relays..... previous line  [[[ if (message.sensor <=noRelays){ ]]]
+   Relays[message.sensor].relayState = message.getBool(); 
+   digitalWrite(Relays[message.sensor].relayPin, Relays[message.sensor].relayState? RELAY_ON:RELAY_OFF); // and set relays accordingly
+   saveState( message.sensor, Relays[message.sensor].relayState ); // save sensor state in EEPROM (location == sensor number)
+   }
+   else if (message.getBool()){
+      if (message.sensor == DOOR_REMOTE) {
+        //Serial.println ("Sending DOOR data");
+
+        //RemoteTransmitter::sendCode(pin, val, period, 3);
+        mySwitch.send(val, 24);
+        wait(50);
+
+        //Serial.println ("Turn POWER_BUTTON off in Vera");
+        send(msg_power.setSensor(DOOR_REMOTE).set(0), true);
+      }
+  }
+  }
+}
