@@ -14,6 +14,9 @@
 //Set Static ID
 #define MY_NODE_ID 9
 
+#define MY_PARENT_NODE_ID 20
+#define MY_PARENT_NODE_IS_STATIC
+
 #include <MySensors.h>
 #include <SPI.h>
 #include <Bounce2.h>
@@ -43,7 +46,7 @@ Bounce debouncer[noRelays];
 MyMessage msg[noRelays];
 MyMessage msg_power(DOOR_REMOTE,V_LIGHT);
 
-long val = 1234567;   //find code with receiver sketch, 7 digits
+long val = 6129906;   //find code with receiver sketch
 
 void setup(){
     sendHeartbeat();
