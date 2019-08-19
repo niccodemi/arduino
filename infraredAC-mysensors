@@ -1,0 +1,72 @@
+//Mysensors 2.3.1 IRsend - Samsung AC (OFF command)
+//https://forum.arduino.cc/index.php?topic=418106.0
+//obtain IR code with AnalysisIR sketch for long codes
+//https://www.analysir.com/blog/2014/03/19/air-conditioners-problems-recording-long-infrared-remote-control-signals-arduino/
+//Remove all the negative signs using a text editor
+//Insert IR code in IRremote: IRsendRawDemo - demonstrates sending IR codes with sendRaw
+
+//Set Static ID
+#define MY_NODE_ID 19
+
+// Enable debug prints to serial monitor
+//#define MY_DEBUG
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+// MySensors libraries
+#include <SPI.h>
+#include <MySensors.h>
+#include <IRremote.h>
+
+// Child ID's of this node
+#define CHILD_1  1
+
+IRsend irsend;
+
+MyMessage sendMsg(CHILD_1, V_LIGHT);
+
+void setup()
+{
+  Serial.begin(115200);
+  wait(500);
+  //Serial.println(F("HeatpumpIR sensor starting up..."));
+}
+
+void presentation() {
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("Aircon-nw", "1.0");
+  wait(50);
+  // Register a sensors to the MySensors Gateway
+  present(CHILD_1, S_LIGHT, "IR sender");
+  wait(50);
+}
+void loop() {
+  }
+
+void receive(const MyMessage &message) {
+  // We only expect one type of message from controller. But we better check anyway.
+  if (message.isAck()) {
+     //Serial.println("This is an ack from gateway");
+  }
+  
+  if (message.type==V_LIGHT) {
+
+     //Serial.print("Incoming change for sensor:");
+     //Serial.print(message.sensor);
+     //Serial.print(", New status: ");
+     //Serial.println(message.getBool());
+     
+     if (message.getBool()){
+      if (message.sensor == CHILD_1) {
+        //Serial.println ("Sending IR data");
+        wait(100);
+        int khz = 38; // 38kHz carrier frequency for the NEC protocol
+  unsigned int irSignal[] = {3076, 8944, 540, 472, 580, 1424, 588, 420, 588, 420, 584, 424, 584, 424, 584, 420, 588, 420, 584, 424, 588, 1420, 588, 420, 584, 424, 584, 1420, 588, 1420, 584, 424, 584, 1420, 536, 1472, 584, 1424, 584, 1420, 588, 1420, 584, 424, 584, 424, 536, 472, 584, 420, 588, 420, 536, 472, 584, 424, 584, 424, 588, 420, 584, 424, 536, 468, 588, 420, 588, 420, 584, 424, 588, 420, 584, 420, 588, 424, 584, 420, 588, 420, 588, 420, 588, 420, 588, 420, 584, 420, 588, 420, 588, 420, 588, 420, 588, 420, 584, 424, 588, 420, 584, 420, 588, 420, 588, 420, 588, 420, 588, 420, 584, 1420, 588, 1420, 588, 2424, 3080, 8944, 588, 1420, 588, 420, 588, 420, 584, 424, 584, 420, 588, 420, 588, 420, 588, 420, 588, 420, 588, 1416, 588, 420, 588, 420, 588, 1420, 584, 424, 584, 1420, 588, 1420, 536, 1468, 588, 1420, 588, 1420, 584, 1420, 540, 468, 588, 420, 588, 420, 588, 420, 588, 420, 588, 420, 588, 416, 588, 424, 584, 420, 588, 420, 584, 424, 588, 420, 588, 420, 584, 420, 588, 420, 588, 420, 588, 420, 588, 420, 588, 420, 588, 420, 584, 420, 588, 420, 588, 420, 588, 420, 588, 420, 588, 420, 536, 472, 588, 416, 588, 420, 588, 420, 588, 420, 588, 420, 584, 424, 588, 420, 584, 420, 588, 420, 588, 1920, 3080, 8944, 544, 1464, 584, 424, 584, 424, 588, 420, 536, 472, 584, 420, 540, 468, 540, 468, 536, 472, 536, 1468, 588, 420, 588, 420, 588, 420, 540, 468, 584, 1420, 588, 1420, 588, 420, 540, 1468, 584, 1420, 540, 1468, 588, 1420, 584, 1420, 540, 1468, 536, 1468, 588, 1420, 540, 468, 588, 420, 536, 472, 536, 1468, 588, 1420, 540, 1468, 584, 424, 536, 468, 588, 420, 540, 468, 588, 420, 588, 1420, 584, 1420, 540, 468, 540, 1468, 536, 1468, 588, 1420, 540, 468, 584, 1420, 588, 1420, 540, 468, 584, 424, 588, 420, 584, 424, 536, 472, 536, 468, 588, 420, 540, 468, 588, 420, 540, 1464, 540, 1468, 540}; //AnalysIR Batch Export (IRremote) - RAW
+  
+  irsend.sendRaw(irSignal, sizeof(irSignal) / sizeof(irSignal[0]), khz); //Note the approach used to automatically calculate the size of the array.
+      }        
+    }
+   } 
+}
