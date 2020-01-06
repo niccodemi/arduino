@@ -1,0 +1,118 @@
+/**Raingauge based on reed switch and ultrasonic distance , mysensors 2.3.1
+* DESCRIPTION
+ *
+ * Simple binary switch example 
+ * Connect button or door/window reed switch between 
+ * digitial I/O pin 3 (BUTTON_PIN below) and GND.
+ * Trigger Pin = 6 and Echo Pin = 5
+ * http://www.mysensors.org/build/binary
+ */
+// Enable debug prints to serial monitor
+//#define MY_DEBUG 
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#define MY_RF24_PA_LEVEL RF24_PA_LOW   //(if not LOW, then issues with ACK in openhab, myscontroller)
+
+//Set Static Parent ID
+#define MY_PARENT_NODE_IS_STATIC
+#define MY_PARENT_NODE_ID 0
+
+// Set static node ID
+#define MY_NODE_ID 8
+
+#include <SPI.h>
+#include <MySensors.h>
+#include <Bounce2.h>
+
+#define trigPin 6
+#define echoPin 5
+
+long duration;
+int distance;
+unsigned long startMillis;
+unsigned long currentMillis;
+const unsigned long period = 150000;  //the value is a number of milliseconds, ie 1 second
+
+#define CHILD_ID 1
+#define CHILD_ID_2 2
+#define BUTTON_PIN  3  // Arduino Digital I/O pin for button/reed switch
+
+Bounce debouncer = Bounce(); 
+int oldValue=-1;
+
+// Change to V_LIGHT if you use S_LIGHT in presentation below
+MyMessage msg(CHILD_ID,V_TRIPPED);
+MyMessage msg2(CHILD_ID_2, V_DISTANCE);
+
+void setup()  
+{  
+  // Setup the button
+  pinMode(BUTTON_PIN,INPUT);
+ //distance sensor
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+    // Begin Serial communication at a baudrate of 9600:
+  Serial.begin(9600);
+
+  // After setting up the button, setup debouncer
+  debouncer.attach(BUTTON_PIN);
+  debouncer.interval(5);
+  startMillis = millis();  //initial start time
+}
+
+void presentation() {
+  sendSketchInfo("Rain-distance", "1.0");
+  wait(80);
+  // Register binary input sensor to gw (they will be created as child devices)
+  // You can use S_DOOR, S_MOTION or S_LIGHT here depending on your usage. 
+  // If S_LIGHT is used, remember to update variable type you send in. See "msg" above.
+  present(CHILD_ID, S_MOTION); 
+  wait(80);
+  present(CHILD_ID_2, S_DISTANCE); 
+  wait(80);
+}
+
+
+//  Check if digital input has changed and send in new value
+void loop() 
+{
+  debouncer.update();
+  // Get the update value
+  int value = debouncer.read();
+
+  if (value != oldValue) {
+     // Send in the new value
+     send(msg.set(value==HIGH ? 1 : 0));
+     oldValue = value;
+     wait(80);
+  }
+  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  {
+    // Clear the trigPin by setting it LOW:
+  digitalWrite(trigPin, LOW);
+  
+  delayMicroseconds(5);
+ // Trigger the sensor by setting the trigPin high for 10 microseconds:
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // Read the echoPin. pulseIn() returns the duration (length of the pulse) in microseconds:
+  duration = pulseIn(echoPin, HIGH);
+  
+  // Calculate the distance:
+  distance = duration*0.034/2;
+  
+  // Print the distance on the Serial Monitor (Ctrl+Shift+M):
+  //Serial.print("Distance = ");
+  //Serial.print(distance);
+  //Serial.println(" cm");
+  send(msg2.set(distance));
+  startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+  } 
+}
