@@ -1,0 +1,81 @@
+/** MySensors 2.3.2 PMS7003 PMS code
+ *  https://github.com/jmstriegel/Plantower_PMS7003
+ *******************************
+ *
+ * DESCRIPTION
+ *
+ * Example sketch showing how to send in DS1820B OneWire temperature readings back to the controller
+ * http://www.mysensors.org/build/temp
+ */
+
+ //Set Static ID
+#define MY_NODE_ID 11
+
+// Enable debug prints to serial monitor
+//#define MY_DEBUG 
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#include <MySensors.h>
+#include "PMS.h"
+#include <SoftwareSerial.h>
+
+SoftwareSerial mySerial1(3, 4); // RX, TX
+
+#define CHILD_ID_DUST_PM25 0
+
+unsigned long startMillis;
+unsigned long currentMillis;
+const unsigned long period = 300000;  //the value is a number of milliseconds, ie 1 second
+
+MyMessage msgDust25(CHILD_ID_DUST_PM25, V_LEVEL);   // Sets up the message format that we'l be sending to the MySensors gateway later.
+MyMessage msgDust25b(CHILD_ID_DUST_PM25, V_UNIT_PREFIX);
+
+PMS pms(mySerial1);
+PMS::DATA data;
+
+void presentation()
+{
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("PMS-7003-indoor", "1.0");
+  wait(50);
+  // Register all sensors to gateway (they will be created as child devices): 
+  present(CHILD_ID_DUST_PM25, S_LIGHT_LEVEL);
+  send(msgDust25b.set("um/m3")); 
+  wait(50);
+}
+
+void setup()
+{
+  //Serial.begin(115200);   // (TX/RX pin)
+  mySerial1.begin(9600);  // PMS7003
+  wait(50);
+}
+
+void loop()
+{
+
+  if (pms.read(data))
+  {
+//    Serial.print("PM 1.0 (ug/m3): ");
+//    Serial.println(data.PM_AE_UG_1_0);
+
+//    Serial.print("PM 2.5 (ug/m3): ");
+//    Serial.println(data.PM_AE_UG_2_5);
+    
+//    Serial.print("PM 10.0 (ug/m3): ");
+//    Serial.println(data.PM_AE_UG_10_0);
+
+//    Serial.println();
+    wait(300);
+  }
+   currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  {
+    //Serial.println(data.PM_AE_UG_2_5);
+    send(msgDust25.set(data.PM_AE_UG_1_0,1));
+    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+  }
+}
