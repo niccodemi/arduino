@@ -95,7 +95,7 @@ float rawReading = analogRead(A1);   // Range : 0..1024
   //Serial.print("Voltage: ");
   //Serial.println(voltage);
     //float distance = (voltage - 0.5) / 4.0 * 2100.0;
-    float distance = ((rawReading-94)*351.85)/(921-94);   // 5V Ref, 5psi sensor
+    float distance = ((rawReading-94)*351.85)/(921-94);   // 5V Ref, 5psi sensor, 351.85=5psi water column in cm
     if (lastdistance != distance) {
       if(distance > lastdistance + 3 || distance < lastdistance - 3){
     //Serial.println(distance, 1);  // 1 decimal
