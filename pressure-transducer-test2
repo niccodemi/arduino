@@ -1,0 +1,34 @@
+//https://forum.arduino.cc/t/pressure-sensor-do-i-need-better-resolution/934076/5
+//https://forum.arduino.cc/t/100psi-pressure-transducer-working-code-inside-using-as-fuel-pressure-gauge/546239/6
+//OBTAIN pressureZero by running code with sensor at normal atmosphere pressure, use the lowest number obtained
+#include "Wire.h" //allows communication over i2c devices
+
+const int pressureInput = A1; //select the analog input pin for the pressure transducer
+const int pressureZero = 94; //analog reading of pressure transducer at 0 psi
+const int pressureMax = 921; //analog reading of pressure transducer at max sensor psi
+const float pressuretransducermaxPSI = 5.0; //psi value of transducer being used
+const float pressuretransducermaxDIST = 351.85; //psi value of transducer being used, 1psi=70.37cm
+const int sensorreadDelay = 5250; //constant integer to set the sensor read delay in milliseconds
+
+float pressureValueraw = 0; //variable to store the value coming from the pressure transducer
+float pressureValue = 0;
+
+void setup() //setup routine, runs once when system turned on or reset
+{
+  Serial.begin(115200); //initializes serial communication at set baud rate bits per second
+  Serial.println("/** Water Pressure Sensor Data 2 **/");
+}
+
+void loop() //loop routine runs over and over again forever
+{
+  pressureValueraw = analogRead(pressureInput); //reads value from input pin and assigns to variable
+  Serial.print(pressureValueraw, 1);
+  Serial.println("raw"); //prints label
+  pressureValue = ((pressureValueraw-pressureZero)*pressuretransducermaxPSI)/(pressureMax-pressureZero); //conversion equation to convert analog reading to psi
+  Serial.print(pressureValue, 1); //prints value from previous line to serial
+  Serial.println("psi"); //prints label to serial
+  pressureValue = ((pressureValueraw-pressureZero)*pressuretransducermaxDIST)/(pressureMax-pressureZero);
+  Serial.print(pressureValue, 1); //prints value from previous line to serial
+  Serial.println("cm"); //prints label to serial
+  delay(sensorreadDelay); //delay in milliseconds between read values
+}
