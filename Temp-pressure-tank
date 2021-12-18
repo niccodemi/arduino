@@ -1,0 +1,141 @@
+/**Temp-pressure-tank-5PSI, Mysensors 2.3.0
+ * DESCRIPTION
+ *use pressure-transducer-test2 sketch to verify / calibrate sensor
+ * Example sketch showing how to send in DS1820B OneWire temperature readings back to the controller
+ * and pressure transducer water level (5PSI, 5V reference
+ * http://www.mysensors.org/build/temp
+ */
+
+// Enable debug prints to serial monitor
+//#define MY_DEBUG 
+
+// Enable and select radio type attached
+#define MY_RADIO_NRF24
+//#define MY_RADIO_RFM69
+
+#define MY_RF24_PA_LEVEL RF24_PA_LOW   //(if not LOW, then issues with ACK in openhab, myscontroller)
+
+//Set Static Parent ID
+#define MY_PARENT_NODE_IS_STATIC
+#define MY_PARENT_NODE_ID 0
+
+// Set static node ID
+#define MY_NODE_ID 7
+
+#include <SPI.h>
+#include <MySensors.h>  
+#include <DallasTemperature.h>
+#include <OneWire.h>
+
+#define BARO_CHILD_ID 3 
+
+#define COMPARE_TEMP 1 // Send temperature only if changed? 1 = Yes 0 = No
+
+#define ONE_WIRE_BUS 3 // Pin where dallase sensor is connected 
+#define MAX_ATTACHED_DS18B20 3    //original 16
+unsigned long SLEEP_TIME = 60000; // Sleep time between reads (in milliseconds)
+OneWire oneWire(ONE_WIRE_BUS); // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+DallasTemperature sensors(&oneWire); // Pass the oneWire reference to Dallas Temperature. 
+float lastTemperature[MAX_ATTACHED_DS18B20];
+int numSensors=0;
+float lastdistance = 0;
+unsigned long oldTime;
+bool receivedConfig = false;
+bool metric = true;
+// Initialize temperature message
+MyMessage msgtemp(0,V_TEMP);
+MyMessage msgdist(BARO_CHILD_ID, V_DISTANCE);
+
+void before()
+{
+  // Startup up the OneWire library
+  sensors.begin();
+}
+
+void setup()  
+{ 
+  // requestTemperatures() will not block current thread
+  sensors.setWaitForConversion(false);
+  oldTime           = 0;
+}
+
+void presentation() {
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("Temp-press-tank", "1.1");
+  wait(80);
+  // Fetch the number of attached temperature sensors  
+  numSensors = sensors.getDeviceCount();
+
+  // Present all sensors to controller
+  for (int i=1; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {   
+     present(i, S_TEMP);
+    wait(2000);
+    //present(0, S_TEMP);
+    //wait(50);
+    //present(1, S_TEMP);
+    //wait(50);
+    //present(2, S_TEMP);
+    wait(50);
+    //present(4, S_TEMP);
+    present(BARO_CHILD_ID, S_DISTANCE);
+    wait(50);
+}
+}
+void loop()     
+{      
+   if((millis() - oldTime) > 179000)    // Only process pressure sensor once every 3 minutes
+  {
+    //float rawVoltage = (rawReading * (4.5 / 1023.0)) + 0.5;
+float rawReading = analogRead(A1);   // Range : 0..1024
+  //Serial.print("Raw reading: ");
+  //Serial.println(rawReading);
+  
+    // CONVERT TO VOLTAGE
+  //float voltage = 5.0 * rawReading / 1024; // voltage = 0..5V;  we do the math in millivolts!!
+  //Serial.print("Voltage: ");
+  //Serial.println(voltage);
+    //float distance = (voltage - 0.5) / 4.0 * 2100.0;
+    float distance = ((rawReading-94)*351.85)/(921-94);   // 5V Ref, 5psi sensor
+    if (lastdistance != distance) {
+      if(distance > lastdistance + 3 || distance < lastdistance - 3){
+    //Serial.println(distance, 1);  // 1 decimal
+       //send(msgdist.setSensor(3).set(distance,1));
+       wait(80);
+       send(msgdist.set(distance,1));
+       lastdistance = distance;
+       }
+       }
+       oldTime = millis();
+      } 
+  wait(300);
+  // Fetch temperatures from Dallas sensors
+  sensors.requestTemperatures();
+
+  // query conversion time and sleep until conversion completed
+  int16_t conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
+  // sleep() call can be replaced by wait() call if node need to process incoming messages (or if node is repeater)
+  wait(conversionTime);
+
+  // Read temperatures and send them to controller 
+  for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {
+
+    // Fetch and round temperature to one decimal
+    float temperature = static_cast<float>(static_cast<int>((getControllerConfig().isMetric?sensors.getTempCByIndex(i):sensors.getTempFByIndex(i)) * 10.)) / 10.;
+
+    // Only send data if temperature has changed and no error
+    #if COMPARE_TEMP == 1
+    if (lastTemperature[i] != temperature && temperature != -127.00 && temperature != 85.00) {
+    #else
+    if (temperature != -127.00 && temperature != 85.00) {
+    #endif
+
+      // Send in the new temperature
+      send(msgtemp.setSensor(i).set(temperature,1));
+      // Save new temperatures for next compare
+      lastTemperature[i]=temperature;
+    }
+  }
+       //wait(50);
+  //sendHeartbeat();
+  wait(SLEEP_TIME);
+}
