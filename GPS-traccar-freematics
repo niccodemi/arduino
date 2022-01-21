@@ -1,0 +1,155 @@
+//https://github.com/stanleyhuangyc/Freematics/tree/master/firmware_v5/traccar_client_wifi
+//FREEMATICS traccar client
+// the setup function runs once when you press reset or power the board
+//#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <TinyGPS.h>
+#include <SoftwareSerial.h>
+
+#define PIN_GPS_UART_RXD 13  //nodemcu D7 = arduino ide 13
+#define PIN_GPS_UART_TXD 15  //nodemcu D8 = arduino ide 15
+SoftwareSerial ss(PIN_GPS_UART_RXD, PIN_GPS_UART_TXD); // The serial connection to the GPS device
+
+#define GPS_BAUDRATE 9600
+#define WIFI_SSID "wifi-ssid"
+#define WIFI_PASSWORD "password"
+#define WIFI_JOIN_INTERVAL 15000
+
+// Set your Static IP address, for dhcp delete below section
+IPAddress local_IP(192, 168, 0, 106);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 0, 0);
+IPAddress primaryDNS(8, 8, 8, 8);   //optional
+IPAddress secondaryDNS(8, 8, 4, 4); //optional
+
+#define TRACCAR_HOST "traccar-server"
+#define TRACCAR_PORT 5055
+#define TRACCAR_DEV_ID "traccar-id"
+
+//millis-delay-period
+const unsigned long eventInterval = 180000;
+unsigned long previousTime = 0;
+
+TinyGPS gps;
+//Wifi
+WiFiClient client;
+
+void setup() {
+  Serial.begin(9600);
+  ss.begin(GPS_BAUDRATE);
+  // Configures static IP address, remove for dhcp
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
+  Serial.println();
+  Serial.printf("Connecting to ");
+  Serial.println(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  pinMode(BUILTIN_LED, OUTPUT);
+  while (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(BUILTIN_LED, HIGH);
+    delay(500);
+    Serial.println("");
+    Serial.println("WiFi connected");
+    delay(500);
+    digitalWrite(BUILTIN_LED, LOW);
+    delay(500);
+//   Serial.println();
+   Serial.print("WiFi connected. IP:");
+   Serial.println(WiFi.localIP());
+  }
+}
+
+// the loop function runs over and over again forever
+void loop() {
+  unsigned long currentTime = millis();
+  if (currentTime - previousTime >= eventInterval) {
+  static unsigned long lastutc = 0;
+
+   // check incoming NMEA data from GPS
+  if (!ss.available()) {
+    return;
+  }
+  
+  // read a character of NMEA stream from GPS
+  char c = ss.read();
+   if (lastutc == 0) {
+    // display progress before GPS has signal
+    if (c == '\n') Serial.write('.');
+  }
+
+  // decode NMEA stream
+  if (!gps.encode(c)) {
+    return;
+  }
+
+ //Send Data to Server if connected
+  if (client.connect(TRACCAR_HOST, TRACCAR_PORT)) {
+        Serial.println("OK");
+      } else {
+        Serial.println("failed");
+        delay(500);
+        return;
+      }
+  
+    // check UTC timestamp from GPS
+  unsigned long utcdate, utctime;
+  gps.get_datetime(&utcdate, &utctime, 0);
+  if (utctime == lastutc) {
+    return;
+  }
+
+    // now that new GPS coordinates are available
+  long lat, lng;
+  gps.get_position(&lat, &lng, 0);
+  long speed = gps.speed();
+  long alt = gps.altitude();
+  int sats = gps.satellites();
+  int heading = gps.course();
+   // generate ISO time string
+  char isotime[24];
+  sprintf(isotime, "%04u-%02u-%02uT%02u:%02u:%02u.%01uZ",
+    (unsigned int)(utcdate % 100) + 2000, (unsigned int)(utcdate / 100) % 100, (unsigned int)(utcdate / 10000),
+    (unsigned int)(utctime / 1000000), (unsigned int)(utctime % 1000000) / 10000, (unsigned int)(utctime % 10000) / 100, ((unsigned int)utctime % 100) / 10);
+
+  // display GPS UTC time and coordinates
+//  Serial.print(isotime);
+//  Serial.print(" LAT:");
+//  Serial.print((float)lat / 1000000, 6);
+//  Serial.print(" LNG:");
+//  Serial.print((float)lng / 1000000, 6);
+//  Serial.print(" Speed:");
+//  Serial.print((int)speed * 1852 / 100000);
+//  Serial.print("km/h Alt:");
+//  Serial.print(alt / 100);
+//  Serial.print("m Sats:");
+//  Serial.println(sats);
+  
+// arrange and send data in OsmAnd protocol
+  // refer to https://www.traccar.org/osmand
+  char data[128];
+  sprintf(data, "&lat=%f&lon=%f&altitude=%d&speed=%f&heading=%d", (float)lat / 1000000, (float)lng / 1000000, (int)(alt / 100), (float)speed / 100, heading / 100);
+    client.print(String("GET /?id=") + TRACCAR_DEV_ID + "&timestamp=" + isotime + data + " HTTP/1.1\r\n" +
+    "Host: " + TRACCAR_HOST + "\r\n" + 
+    "Connection: keep-alive\r\n\r\n");
+//    Serial.println("Client-print-test");
+
+      // waiting for server response while still decoding NMEA
+  for (uint32_t t = millis(); !client.available() && millis() - t < 3000; ) {
+    if (ss.available()) {
+      gps.encode(ss.read());
+    }
+  }
+  // output server response
+  while(client.available()) {
+    Serial.print((char)client.read()); //must be enabled otherwise causing esp reboot
+  }
+  
+  client.stop();
+  delay(500);
+  client.println("Connection: close");
+    // keep processed UTC timestamp
+  lastutc = utctime;
+ previousTime = currentTime; //millis
+} //millis
+}
