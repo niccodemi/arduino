@@ -84,7 +84,7 @@ void presentation()  {
       for (int i = 0; i < noRelays; i++)
       present(i, S_LIGHT);                               // present sensor to gateway
       wait(90);
-      present(ID_S_MULTIMETERV,V_VOLTAGE);                // Register Sensor to gateway 
+      present(ID_S_MULTIMETERV, S_MULTIMETER);                // Register Sensor to gateway 
       wait(50);
       present (DOOR_REMOTE, S_LIGHT);
       wait(50);
