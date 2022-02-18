@@ -94,7 +94,7 @@ void presentation()
     wait(50);
     present(5, S_LIGHT);
     wait(50);
-    present(ID_S_MULTIMETERV,V_VOLTAGE);  
+    present(ID_S_MULTIMETERV, S_MULTIMETER);
     wait(50);
   }
 //}
