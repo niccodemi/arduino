@@ -1,4 +1,4 @@
-/* Gate Reed switch, modified for one sensor
+/* Gate Reed switch, modified for one sensor, works with E18-D80NK IR Sensor too (May 2023)
 https://forum.mysensors.org/topic/10869/arduino-pro-mini-rfm69-with-2-reed-switches-on-interrupts/7
  *
  */
